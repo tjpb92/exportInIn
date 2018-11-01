@@ -1,12 +1,10 @@
 package exportinin;
 
-import java.util.StringTokenizer;
-
 /**
  * Classe décrivant un enregistrement InIn
  *
  * @author Thierry Baribaud
- * @version 0.02
+ * @version 0.03
  */
 public class InInRecord {
 
@@ -21,36 +19,87 @@ public class InInRecord {
      * Constructeur principal de la classe InInRecord
      *
      * @param inInRecord enregistrement InIn
-     * @throws exportinin.BadlyFormedInInRecordException exception lancée si l'enregistrement est mal formé
+     * @throws exportinin.BadlyFormedInInRecordException exception lancée si
+     * l'enregistrement est mal formé
      */
     public InInRecord(String inInRecord) throws BadlyFormedInInRecordException {
         int nbToken;
 //        StringTokenizer stringTokenizer;
 //        String dummy;
         int i;
+        StringBuffer field;
         String[] tokens;
+        boolean inField;
+        int quotes;
+        char c;
+        int len;
+        int fieldLen;
 
-        System.out.println("inInRecord:" + inInRecord + ", len=" + inInRecord.length());
+        len = inInRecord.length();
+//        System.out.println("inInRecord:" + inInRecord + ", len=" + len);
+
+        inField = false;
+        quotes = 0;
+        field = new StringBuffer();
+        nbToken = 0;
+        tokens = new String[6];
+        c=',';
+        for (i = 0; i < len; i++) {
+            c = inInRecord.charAt(i);
+            if (c == '\"') {
+                quotes++;
+                if (inField) {
+                    field.append(c);
+                } else {
+                    inField=true;
+                }
+            }
+            else if (c == ',') {
+                if ((quotes % 2) == 0) {
+                    fieldLen = field.length() - 1;
+                    if (fieldLen > 0) {
+                        tokens[nbToken++] = field.substring(0, fieldLen);
+                    } else {
+                        tokens[nbToken++] = new String();
+                    }
+                    inField = false;
+                    quotes = 0;
+                    field = new StringBuffer();
+                } else {
+                    field.append(c);
+                }
+            }
+            else {
+               field.append(c); 
+            }
+        }
+        if ((quotes % 2) == 0 && c != ',') {
+            fieldLen = field.length() - 1;
+            if (fieldLen > 0) {
+                tokens[nbToken++] = field.substring(0, fieldLen);
+            } else {
+                tokens[nbToken++] = new String();
+            }
+        }
+//        System.out.println("nbToken=" + nbToken);
 //        for (i=0;i<inInRecord.length();i++){
 //            System.out.println("inInRecord[" + i + "]=" + inInRecord.charAt(i));
 //        }
-        tokens = inInRecord.split("\"");
-        nbToken = tokens.length;
-        System.out.println("split.nbToken:" + nbToken);
-        for (i=0;i<nbToken;i++){
-            System.out.println("inInRecord[" + i + "]=" + tokens[i]);
-        }
-        
+//        tokens = inInRecord.split("\"");
+//        nbToken = tokens.length;
+//        System.out.println("split.nbToken:" + nbToken);
+//        for (i=0;i<nbToken;i++){
+//            System.out.println("inInRecord[" + i + "]=" + tokens[i]);
+//        }
+//        
 //        stringTokenizer = new StringTokenizer(inInRecord, "\"");
 //        nbToken = stringTokenizer.countTokens();
 //        System.out.println("stringTokenizer.nbToken:" + nbToken);
-
 //        i=0;
 //        while(stringTokenizer.hasMoreTokens()) {
 //            i++;
-//            System.out.println("token(" + i + ")=" + stringTokenizer.nextToken());
+//            System.out.println("field(" + i + ")=" + stringTokenizer.nextToken());
 //        }
-
 //        if (nbToken == 12) {
 //            this.path = stringTokenizer.nextToken();
 //            dummy = stringTokenizer.nextToken();
@@ -67,19 +116,17 @@ public class InInRecord {
 //        else {
 //            throw new BadlyFormedInInRecordException("inInRecord"); 
 //        }
-        
-        if (nbToken == 12) {
-            this.path = tokens[1];
-            this.objectClass = tokens[3];
-            this.isKey = tokens[5];
-            this.valueName = tokens[7];
-            this.value = tokens[9];
-            this.cntd = tokens[11];
+        if (nbToken == 6) {
+            this.path = tokens[0];
+            this.objectClass = tokens[1];
+            this.isKey = tokens[2];
+            this.valueName = tokens[3];
+            this.value = tokens[4];
+            this.cntd = tokens[5];
+        } else {
+            throw new BadlyFormedInInRecordException("inInRecord");
         }
-        else {
-            throw new BadlyFormedInInRecordException("inInRecord"); 
-        }
-        
+
     }
 
     /**

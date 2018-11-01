@@ -1,10 +1,12 @@
 package exportinin;
 
+import java.util.ArrayList;
+
 /**
  * Calsse décrivant un agent de centre d'appel
  *
  * @author Thierry Baribaud
- * @version 0.02
+ * @version 0.03
  */
 public class Agent {
 
@@ -24,9 +26,26 @@ public class Agent {
     private String extension;
 
     /**
+     * Rôle de l'agent
+     */
+    private String role;
+
+    /**
+     * Liste des compétences de l'agent
+     */
+    private ArrayList<String> skills;
+
+    /**
+     * Liste des groupes de traitement sur lesquels travaille l'agent
+     */
+    private ArrayList<String> workgroups;
+
+    /**
      * Constructeur principal de la classe
      */
     public Agent() {
+        skills = new ArrayList<>();
+        workgroups = new ArrayList<>();
     }
 
     /**
@@ -35,6 +54,7 @@ public class Agent {
      * @param id identifiant de l'agent
      */
     public Agent(String id) {
+        this();
         this.id = id;
     }
 
@@ -81,6 +101,68 @@ public class Agent {
     }
 
     /**
+     * @return le rôle de l'agent
+     */
+    public String getRole() {
+        return role;
+    }
+
+    /**
+     * @param role définit le rôle de l'agent
+     */
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    /**
+     * @return les compétences de l'agent
+     */
+    public ArrayList<String> getSkills() {
+        return skills;
+    }
+
+    /**
+     * @param skills définit les compétences de l'agent
+     */
+    public void setSkills(ArrayList<String> skills) {
+        this.skills = skills;
+    }
+
+    /**
+     * Ajoute une compétence à la liste des compétences de l'agent
+     *
+     * @param skill compétence à ajouter
+     */
+    public void addSkill(String skill) {
+        this.skills.add(skill);
+    }
+
+    /**
+     * @return les groupes de traitement sur lesquels travaille l'agent
+     */
+    public ArrayList<String> getWorkgroups() {
+        return workgroups;
+    }
+
+    /**
+     * @param workgroups définit les groupes de traitement sur lesquels
+     * travaille l'agent
+     */
+    public void setWorkgroups(ArrayList<String> workgroups) {
+        this.workgroups = workgroups;
+    }
+
+    /**
+     * Ajoute un groupe de traitement à la liste des groupes de traitement sur
+     * lesquels travaille l'agent
+     *
+     * @param workgroup groupe de traitement à ajouter
+     */
+    public void addWorkgroup(String workgroup) {
+        this.workgroups.add(workgroup);
+    }
+
+    /**
      * @return Retourne l'objet sous forme textuelle
      */
     @Override
@@ -89,7 +171,9 @@ public class Agent {
                 + "id:" + getId()
                 + ", name:" + getName()
                 + ", extension:" + getExtension()
+                + ", role:" + getRole()
+                + ", skills:" + getSkills()
+                + ", workgroups:" + getWorkgroups()
                 + "}";
     }
-
 }
