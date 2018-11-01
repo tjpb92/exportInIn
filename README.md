@@ -1,4 +1,4 @@
-# ExpUsers
+# exportInIn
 Programme Java permettant d'exporter dans un fichier Excel la configuration d’InIn
 
 ##Utilisation:
