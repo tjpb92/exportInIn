@@ -6,7 +6,7 @@ import java.util.ArrayList;
  * Calsse décrivant un agent de centre d'appel
  *
  * @author Thierry Baribaud
- * @version 0.03
+ * @version 0.05
  */
 public class Agent {
 
@@ -17,6 +17,16 @@ public class Agent {
 
     /**
      * Nom de l'agent
+     */
+    private String lastname;
+
+    /**
+     * Prénom de l'agent
+     */
+    private String firstname;
+
+    /**
+     * Nom complet de l'agent
      */
     private String name;
 
@@ -33,7 +43,7 @@ public class Agent {
     /**
      * Liste des compétences de l'agent
      */
-    private ArrayList<String> skills;
+    private ArrayList<AgentSkill> skills;
 
     /**
      * Liste des groupes de traitement sur lesquels travaille l'agent
@@ -75,12 +85,40 @@ public class Agent {
     /**
      * @return le nom de l'agent
      */
+    public String getLastname() {
+        return lastname;
+    }
+
+    /**
+     * @param lastname définit le nom de l'agent
+     */
+    public void setLastname(String lastname) {
+        this.lastname = lastname;
+    }
+
+    /**
+     * @return le prénom de l'agent
+     */
+    public String getFirstname() {
+        return firstname;
+    }
+
+    /**
+     * @param firstname définit le prénom de l'agent
+     */
+    public void setFirstname(String firstname) {
+        this.firstname = firstname;
+    }
+
+    /**
+     * @return le nom complet de l'agent
+     */
     public String getName() {
         return name;
     }
 
     /**
-     * @param name définit le nom de l'agent
+     * @param name définit le nom complet de l'agent
      */
     public void setName(String name) {
         this.name = name;
@@ -117,14 +155,14 @@ public class Agent {
     /**
      * @return les compétences de l'agent
      */
-    public ArrayList<String> getSkills() {
+    public ArrayList<AgentSkill> getSkills() {
         return skills;
     }
 
     /**
      * @param skills définit les compétences de l'agent
      */
-    public void setSkills(ArrayList<String> skills) {
+    public void setSkills(ArrayList<AgentSkill> skills) {
         this.skills = skills;
     }
 
@@ -133,7 +171,7 @@ public class Agent {
      *
      * @param skill compétence à ajouter
      */
-    public void addSkill(String skill) {
+    public void addSkill(AgentSkill skill) {
         this.skills.add(skill);
     }
 
@@ -169,6 +207,8 @@ public class Agent {
     public String toString() {
         return "Agent:{"
                 + "id:" + getId()
+                + ", lastname:" + getLastname()
+                + ", firstname:" + getFirstname()
                 + ", name:" + getName()
                 + ", extension:" + getExtension()
                 + ", role:" + getRole()

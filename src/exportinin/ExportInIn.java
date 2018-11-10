@@ -28,7 +28,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * Exporter dans un fichier Excel la configuration d’InIn
  *
  * @author Thierry Baribaud
- * @version 0.04
+ * @version 0.05
  */
 public class ExportInIn {
 
@@ -130,7 +130,7 @@ public class ExportInIn {
         Enumeration enumWorkgroups;
         String aSkill;
         String[] buffer;
-        AgentSkill userSkill;
+        AgentSkill agentSkill;
 
         System.out.println("Traitement du fichier ...");
         agents = new Hashtable<>();
@@ -143,7 +143,7 @@ public class ExportInIn {
         agent = new Agent();
         skill = new Skill();
         workgroup = new Workgroup();
-        userSkill = new AgentSkill();
+        agentSkill = new AgentSkill();
         while ((line = bufferedReader.readLine()) != null) {
             nbRecords++;
             if ((nbRecords % 10000) == 0) {
@@ -181,6 +181,14 @@ public class ExportInIn {
                                     agent.setExtension(value);
                                     agents.put(name, agent);
                                     break;
+                                case "surname":
+                                    agent.setLastname(value);
+                                    agents.put(name, agent);
+                                    break;
+                                case "givenName":
+                                    agent.setFirstname(value);
+                                    agents.put(name, agent);
+                                    break;
                                 case "displayName":
                                     agent.setName(value);
                                     agents.put(name, agent);
@@ -192,8 +200,8 @@ public class ExportInIn {
                                 case "Skills":
 //                                    buffer = value.split("\\|");
 //                                    agent.addSkill(buffer[0]);
-                                    userSkill = new AgentSkill(value);
-                                    agent.addSkill(userSkill.getSkill());
+                                    agentSkill = new AgentSkill(value);
+                                    agent.addSkill(agentSkill);
                                     agents.put(name, agent);
                                     break;
                                 case "Workgroups":
@@ -298,7 +306,7 @@ public class ExportInIn {
         Enumeration enumWorkgroups;
         Workgroup workgroup;
         int nbWorkgroups;
-        ArrayList<String> agentSkills;
+        ArrayList<AgentSkill> agentSkills;
         ArrayList<String> indexedSkills;
         ArrayList<String> agentWorkgroups;
         ArrayList<String> indexedWorkgroups;
@@ -317,6 +325,14 @@ public class ExportInIn {
         cell = titre.createCell(column++);
         cell.setCellStyle(titleStyle);
         cell.setCellValue("Nom");
+
+        cell = titre.createCell(column++);
+        cell.setCellStyle(titleStyle);
+        cell.setCellValue("Prénom");
+
+        cell = titre.createCell(column++);
+        cell.setCellStyle(titleStyle);
+        cell.setCellValue("Nom complet");
 
         cell = titre.createCell(column++);
         cell.setCellStyle(titleStyle);
@@ -375,6 +391,14 @@ public class ExportInIn {
 //            cell.setCellStyle(cellStyle);
 
             cell = ligne.createCell(column++);
+            cell.setCellValue(agent.getLastname());
+//            cell.setCellStyle(cellStyle);
+
+            cell = ligne.createCell(column++);
+            cell.setCellValue(agent.getFirstname());
+//            cell.setCellStyle(cellStyle);
+
+            cell = ligne.createCell(column++);
             cell.setCellValue(agent.getName());
 //            cell.setCellStyle(cellStyle);
 
@@ -392,12 +416,13 @@ public class ExportInIn {
 //            cell.setCellStyle(cellStyle);
 
             agentSkills = agent.getSkills();
-            for (String agentSkill:agentSkills) {
-                skillColumn=(short)indexedSkills.indexOf(agentSkill);
+            for (AgentSkill agentSkill:agentSkills) {
+                skillColumn=(short)indexedSkills.indexOf(agentSkill.getSkill());
                 if (skillColumn>=0) {
                     skillColumn=(short) (skillColumn+skillFirstColumn+1);
                     cell = ligne.createCell(skillColumn);
-                    cell.setCellValue("X");
+//                    cell.setCellValue("X");
+                    cell.setCellValue(agentSkill.getLevel());
 //                    cell.setCellStyle(cellStyle);
                 }
             }
