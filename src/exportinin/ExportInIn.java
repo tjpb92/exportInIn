@@ -6,16 +6,20 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Footer;
 import org.apache.poi.ss.usermodel.Header;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.PaperSize;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -24,7 +28,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * Exporter dans un fichier Excel la configuration d’InIn
  *
  * @author Thierry Baribaud
- * @version 0.03
+ * @version 0.04
  */
 public class ExportInIn {
 
@@ -126,6 +130,7 @@ public class ExportInIn {
         Enumeration enumWorkgroups;
         String aSkill;
         String[] buffer;
+        AgentSkill userSkill;
 
         System.out.println("Traitement du fichier ...");
         agents = new Hashtable<>();
@@ -138,6 +143,7 @@ public class ExportInIn {
         agent = new Agent();
         skill = new Skill();
         workgroup = new Workgroup();
+        userSkill = new AgentSkill();
         while ((line = bufferedReader.readLine()) != null) {
             nbRecords++;
             if ((nbRecords % 10000) == 0) {
@@ -169,29 +175,33 @@ public class ExportInIn {
                         agent = new Agent(name);
                         agents.put(name, agent);
                     } else {
-                        if (null != valueName) switch (valueName) {
-                            case "Extension":
-                                agent.setExtension(value);
-                                agents.put(name, agent);
-                                break;
-                            case "displayName":
-                                agent.setName(value);
-                                agents.put(name, agent);
-                                break;
-                            case "Role":
-                                agent.setRole(value);
-                                agents.put(name, agent);
-                                break;
-                            case "Skills":
-                                buffer = value.split("\\|");
-                                agent.addSkill(buffer[0]);
-                                agents.put(name, agent);
-                                break;
-                            case "Workgroups":
+                        if (null != valueName) {
+                            switch (valueName) {
+                                case "Extension":
+                                    agent.setExtension(value);
+                                    agents.put(name, agent);
+                                    break;
+                                case "displayName":
+                                    agent.setName(value);
+                                    agents.put(name, agent);
+                                    break;
+                                case "Role":
+                                    agent.setRole(value);
+                                    agents.put(name, agent);
+                                    break;
+                                case "Skills":
+//                                    buffer = value.split("\\|");
+//                                    agent.addSkill(buffer[0]);
+                                    userSkill = new AgentSkill(value);
+                                    agent.addSkill(userSkill.getSkill());
+                                    agents.put(name, agent);
+                                    break;
+                                case "Workgroups":
 //                                System.out.println("Workgroup : name=" + name + ", value=" + value);
-                                agent.addWorkgroup(value);
-                                agents.put(name, agent);
-                                break;
+                                    agent.addWorkgroup(value);
+                                    agents.put(name, agent);
+                                    break;
+                            }
                         }
                     }
 
@@ -252,96 +262,181 @@ public class ExportInIn {
      * Méthode pour générer le fichier Excel
      */
     private void processOutputFile() {
-        addAgentsToExcel();
-        addSkillsToExcel();
-        addWorkgroupsToExcel();
+        XSSFCellStyle titleStyle;
+        XSSFCellStyle titleStyle2;
+
+        // Style pour les titres
+        titleStyle = classeur.createCellStyle();
+        titleStyle.setFillBackgroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        titleStyle.setFillPattern(FillPatternType.LESS_DOTS);
+
+        titleStyle2 = (XSSFCellStyle) titleStyle.clone();
+        titleStyle2.setRotation((short) 90);
+//        titleStyle.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+
+        addAgentsToExcel(titleStyle, titleStyle2);
+        addSkillsToExcel(titleStyle);
+        addWorkgroupsToExcel(titleStyle);
     }
 
     /**
      * Méthode pour ajouter les utilisateurs dans le fichier Excel
      */
-    private void addAgentsToExcel() {
+    private void addAgentsToExcel(XSSFCellStyle titleStyle, XSSFCellStyle titleStyle2) {
         Enumeration enumAgents;
         XSSFRow titre;
         XSSFCell cell;
         XSSFRow ligne;
         int i;
         Agent agent;
+        int skillFirstColumn;
+        int workgroupFirstColumn;
+        short column;
+        Enumeration enumSkills;
+        Skill skill;
+        int nbSkills;
+        Enumeration enumWorkgroups;
+        Workgroup workgroup;
+        int nbWorkgroups;
+        ArrayList<String> agentSkills;
+        ArrayList<String> indexedSkills;
+        ArrayList<String> agentWorkgroups;
+        ArrayList<String> indexedWorkgroups;
+        short skillColumn;
+        short workgroupColumn;
+        int nbColumns;
 
         // Ligne de titre
         titre = agentsWorksheet.createRow(0);
-        
-        cell = titre.createCell((short) 0);
-//        cell.setCellStyle(titleStyle);
+
+        column = 0;
+        cell = titre.createCell(column++);
+        cell.setCellStyle(titleStyle);
         cell.setCellValue("Id");
-        
-        cell = titre.createCell((short) 1);
-//        cell.setCellStyle(titleStyle);
+
+        cell = titre.createCell(column++);
+        cell.setCellStyle(titleStyle);
         cell.setCellValue("Nom");
-        
-        cell = titre.createCell((short) 2);
-//        cell.setCellStyle(titleStyle);
+
+        cell = titre.createCell(column++);
+        cell.setCellStyle(titleStyle);
         cell.setCellValue("Extension");
-        
-        cell = titre.createCell((short) 3);
-//        cell.setCellStyle(titleStyle);
+
+        cell = titre.createCell(column++);
+        cell.setCellStyle(titleStyle);
         cell.setCellValue("Rôle");
 
-        cell = titre.createCell((short) 4);
-//        cell.setCellStyle(titleStyle);
+        skillFirstColumn = column;
+        cell = titre.createCell(column++);
+        cell.setCellStyle(titleStyle2);
         cell.setCellValue("Compétences");
 
-        cell = titre.createCell((short) 5);
-//        cell.setCellStyle(titleStyle);
+        enumSkills = skills.elements();
+        nbSkills = 0;
+        indexedSkills = new ArrayList<>();
+        while (enumSkills.hasMoreElements()) {
+            nbSkills++;
+            cell = titre.createCell(column++);
+            cell.setCellStyle(titleStyle2);
+            skill = (Skill) enumSkills.nextElement();
+            cell.setCellValue(skill.getName());
+            indexedSkills.add(skill.getName());
+        }
+
+        workgroupFirstColumn = column;
+        cell = titre.createCell(column++);
+        cell.setCellStyle(titleStyle2);
         cell.setCellValue("Groupes de traitement");
+
+        enumWorkgroups = workgroups.elements();
+        nbWorkgroups = 0;
+        indexedWorkgroups = new ArrayList<>();
+        while (enumWorkgroups.hasMoreElements()) {
+            nbWorkgroups++;
+            cell = titre.createCell(column++);
+            cell.setCellStyle(titleStyle2);
+            workgroup = (Workgroup) enumWorkgroups.nextElement();
+            cell.setCellValue(workgroup.getName());
+            indexedWorkgroups.add(workgroup.getName());
+        }
+        nbColumns=column;
 
         enumAgents = agents.elements();
         i = 0;
         while (enumAgents.hasMoreElements()) {
             i++;
             agent = (Agent) enumAgents.nextElement();
-            
+
             ligne = agentsWorksheet.createRow(i);
-            
-            cell = ligne.createCell(0);
+            column = 0;
+
+            cell = ligne.createCell(column++);
             cell.setCellValue(agent.getId());
 //            cell.setCellStyle(cellStyle);
-            
-            cell = ligne.createCell(1);
+
+            cell = ligne.createCell(column++);
             cell.setCellValue(agent.getName());
 //            cell.setCellStyle(cellStyle);
 
-            cell = ligne.createCell(2);
+            cell = ligne.createCell(column++);
             cell.setCellValue(agent.getExtension());
 //            cell.setCellStyle(cellStyle);
 
-            cell = ligne.createCell(3);
+            cell = ligne.createCell(column++);
             cell.setCellValue(agent.getRole());
 //            cell.setCellStyle(cellStyle);
 
-            cell = ligne.createCell(4);
-            cell.setCellValue(String.join(",", agent.getSkills()));
+            column++;
+//            cell = ligne.createCell(column++);
+//            cell.setCellValue(String.join(",", agent.getSkills()));
 //            cell.setCellStyle(cellStyle);
 
-            cell = ligne.createCell(5);
-            cell.setCellValue(String.join(",", agent.getWorkgroups()));
-//            cell.setCellStyle(cellStyle);
+            agentSkills = agent.getSkills();
+            for (String agentSkill:agentSkills) {
+                skillColumn=(short)indexedSkills.indexOf(agentSkill);
+                if (skillColumn>=0) {
+                    skillColumn=(short) (skillColumn+skillFirstColumn+1);
+                    cell = ligne.createCell(skillColumn);
+                    cell.setCellValue("X");
+//                    cell.setCellStyle(cellStyle);
+                }
+            }
+            
+            column += nbSkills;
 
+            column++;
+//            cell = ligne.createCell(column++);
+//            cell.setCellValue(String.join(",", agent.getWorkgroups()));
+//            cell.setCellStyle(cellStyle);
+            agentWorkgroups = agent.getWorkgroups();
+            for (String agentWorkgroup:agentWorkgroups) {
+                workgroupColumn=(short)indexedWorkgroups.indexOf(agentWorkgroup);
+                if (workgroupColumn>=0) {
+                    workgroupColumn=(short) (workgroupColumn+workgroupFirstColumn+1);
+                    cell = ligne.createCell(workgroupColumn);
+                    cell.setCellValue("X");
+//                    cell.setCellStyle(cellStyle);
+                }
+            }
+
+
+            column += nbWorkgroups;
+            
             System.out.println(agent);
         }
-        
-        finalizeWorksheet(agentsWorksheet, 6, "Liste des utilisateurs");
-    
+
+//        System.out.println("nbColumns=" + nbColumns);
+        finalizeWorksheet(agentsWorksheet, nbColumns, "Liste des utilisateurs", true);
+
             // Largeur des deux dernières colonnes fixées à 50 = 12 800 / 256
-            agentsWorksheet.setColumnWidth((int)4, (int)12800);
-            agentsWorksheet.setColumnWidth((int)5, (int)12800);
-        
+//            agentsWorksheet.setColumnWidth((int)skillFirstColumn, (int)12800);
+//            agentsWorksheet.setColumnWidth((int)workgroupFirstColumn, (int)12800);
     }
 
     /**
      * Méthode pour ajouter les comptétences dans le fichier Excel
      */
-    private void addSkillsToExcel() {
+    private void addSkillsToExcel(XSSFCellStyle titleStyle) {
         Enumeration enumSkills;
         XSSFRow titre;
         XSSFCell cell;
@@ -352,7 +447,7 @@ public class ExportInIn {
         // Ligne de titre
         titre = skillsWorksheet.createRow(0);
         cell = titre.createCell((short) 0);
-//        cell.setCellStyle(titleStyle);
+        cell.setCellStyle(titleStyle);
         cell.setCellValue("Nom");
 
         enumSkills = skills.elements();
@@ -360,9 +455,9 @@ public class ExportInIn {
         while (enumSkills.hasMoreElements()) {
             i++;
             skill = (Skill) enumSkills.nextElement();
-            
+
             ligne = skillsWorksheet.createRow(i);
-            
+
             cell = ligne.createCell(0);
             cell.setCellValue(skill.getName());
 //            cell.setCellStyle(cellStyle);
@@ -370,13 +465,13 @@ public class ExportInIn {
             System.out.println(skill);
         }
 
-        finalizeWorksheet(skillsWorksheet, 1, "Liste des compétences");
+        finalizeWorksheet(skillsWorksheet, 1, "Liste des compétences",false);
     }
 
     /**
      * Méthode pour ajouter les groupes de traitement dans le fichier Excel
      */
-    private void addWorkgroupsToExcel() {
+    private void addWorkgroupsToExcel(XSSFCellStyle titleStyle) {
         Enumeration enumWorkgroups;
         XSSFRow titre;
         XSSFCell cell;
@@ -387,10 +482,10 @@ public class ExportInIn {
         // Ligne de titre
         titre = workgroupsWorksheet.createRow(0);
         cell = titre.createCell((short) 0);
-//        cell.setCellStyle(titleStyle);
+        cell.setCellStyle(titleStyle);
         cell.setCellValue("Nom");
         cell = titre.createCell((short) 1);
-//        cell.setCellStyle(titleStyle);
+        cell.setCellStyle(titleStyle);
         cell.setCellValue("Wrap-up");
 
         enumWorkgroups = workgroups.elements();
@@ -398,9 +493,9 @@ public class ExportInIn {
         while (enumWorkgroups.hasMoreElements()) {
             i++;
             workgroup = (Workgroup) enumWorkgroups.nextElement();
-            
+
             ligne = workgroupsWorksheet.createRow(i);
-            
+
             cell = ligne.createCell(0);
             cell.setCellValue(workgroup.getName());
 //            cell.setCellStyle(cellStyle);
@@ -412,7 +507,7 @@ public class ExportInIn {
             System.out.println(workgroup);
         }
 
-        finalizeWorksheet(workgroupsWorksheet, 2, "Liste des groupes de traitement");
+        finalizeWorksheet(workgroupsWorksheet, 2, "Liste des groupes de traitement",false);
     }
 
     /**
@@ -447,7 +542,7 @@ public class ExportInIn {
     /**
      * Méthode pour finaliser un feuillet Excel
      */
-    private void finalizeWorksheet(XSSFSheet worksheet, int nbColumns, String LeftTitle) {
+    private void finalizeWorksheet(XSSFSheet worksheet, int nbColumns, String LeftTitle, boolean landscape) {
 
         // Ajustement automatique de la largeur des colonnes
         for (int k = 0; k < nbColumns; k++) {
@@ -458,7 +553,15 @@ public class ExportInIn {
         worksheet.getPrintSetup().setPaperSize(PaperSize.A4_PAPER);
 
         // Orientation paysage
-        worksheet.getPrintSetup().setLandscape(true);
+        worksheet.getPrintSetup().setLandscape(landscape);
+
+        // Affiche le quadrillage à l'écran
+        worksheet.setDisplayGridlines(true);
+        
+        // Affiche le quadrillage à l'impression
+        worksheet.setPrintGridlines(true);
+        
+//        System.out.println("getDefaultColumnWidth"+worksheet.getDefaultColumnWidth());
 
         // Ajustement à une page en largeur
         worksheet.setFitToPage(true);
