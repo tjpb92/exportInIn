@@ -28,7 +28,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * Exporter dans un fichier Excel la configuration d’InIn
  *
  * @author Thierry Baribaud
- * @version 0.05
+ * @version 0.06
  */
 public class ExportInIn {
 
@@ -313,6 +313,7 @@ public class ExportInIn {
         short skillColumn;
         short workgroupColumn;
         int nbColumns;
+        StringBuffer aString;
 
         // Ligne de titre
         titre = agentsWorksheet.createRow(0);
@@ -375,7 +376,7 @@ public class ExportInIn {
             cell.setCellValue(workgroup.getName());
             indexedWorkgroups.add(workgroup.getName());
         }
-        nbColumns=column;
+        nbColumns = column;
 
         enumAgents = agents.elements();
         i = 0;
@@ -416,17 +417,23 @@ public class ExportInIn {
 //            cell.setCellStyle(cellStyle);
 
             agentSkills = agent.getSkills();
-            for (AgentSkill agentSkill:agentSkills) {
-                skillColumn=(short)indexedSkills.indexOf(agentSkill.getSkill());
-                if (skillColumn>=0) {
-                    skillColumn=(short) (skillColumn+skillFirstColumn+1);
+            for (AgentSkill agentSkill : agentSkills) {
+                skillColumn = (short) indexedSkills.indexOf(agentSkill.getSkill());
+                if (skillColumn >= 0) {
+                    skillColumn = (short) (skillColumn + skillFirstColumn + 1);
                     cell = ligne.createCell(skillColumn);
 //                    cell.setCellValue("X");
-                    cell.setCellValue(agentSkill.getLevel());
+                    aString = new StringBuffer();
+                    aString.append(agentSkill.getLevel());
+//                    System.out.println("skill:"+agentSkill.getLevel());
+                    if (agentSkill.getDesireToUse() > 0) {
+                        aString.append("/").append(agentSkill.getDesireToUse());
+                    }
+                    cell.setCellValue(aString.toString());
 //                    cell.setCellStyle(cellStyle);
                 }
             }
-            
+
             column += nbSkills;
 
             column++;
@@ -434,26 +441,25 @@ public class ExportInIn {
 //            cell.setCellValue(String.join(",", agent.getWorkgroups()));
 //            cell.setCellStyle(cellStyle);
             agentWorkgroups = agent.getWorkgroups();
-            for (String agentWorkgroup:agentWorkgroups) {
-                workgroupColumn=(short)indexedWorkgroups.indexOf(agentWorkgroup);
-                if (workgroupColumn>=0) {
-                    workgroupColumn=(short) (workgroupColumn+workgroupFirstColumn+1);
+            for (String agentWorkgroup : agentWorkgroups) {
+                workgroupColumn = (short) indexedWorkgroups.indexOf(agentWorkgroup);
+                if (workgroupColumn >= 0) {
+                    workgroupColumn = (short) (workgroupColumn + workgroupFirstColumn + 1);
                     cell = ligne.createCell(workgroupColumn);
                     cell.setCellValue("X");
 //                    cell.setCellStyle(cellStyle);
                 }
             }
 
-
             column += nbWorkgroups;
-            
+
             System.out.println(agent);
         }
 
 //        System.out.println("nbColumns=" + nbColumns);
         finalizeWorksheet(agentsWorksheet, nbColumns, "Liste des utilisateurs", true);
 
-            // Largeur des deux dernières colonnes fixées à 50 = 12 800 / 256
+        // Largeur des deux dernières colonnes fixées à 50 = 12 800 / 256
 //            agentsWorksheet.setColumnWidth((int)skillFirstColumn, (int)12800);
 //            agentsWorksheet.setColumnWidth((int)workgroupFirstColumn, (int)12800);
     }
@@ -490,7 +496,7 @@ public class ExportInIn {
             System.out.println(skill);
         }
 
-        finalizeWorksheet(skillsWorksheet, 1, "Liste des compétences",false);
+        finalizeWorksheet(skillsWorksheet, 1, "Liste des compétences", false);
     }
 
     /**
@@ -532,7 +538,7 @@ public class ExportInIn {
             System.out.println(workgroup);
         }
 
-        finalizeWorksheet(workgroupsWorksheet, 2, "Liste des groupes de traitement",false);
+        finalizeWorksheet(workgroupsWorksheet, 2, "Liste des groupes de traitement", false);
     }
 
     /**
@@ -582,12 +588,11 @@ public class ExportInIn {
 
         // Affiche le quadrillage à l'écran
         worksheet.setDisplayGridlines(true);
-        
+
         // Affiche le quadrillage à l'impression
         worksheet.setPrintGridlines(true);
-        
-//        System.out.println("getDefaultColumnWidth"+worksheet.getDefaultColumnWidth());
 
+//        System.out.println("getDefaultColumnWidth"+worksheet.getDefaultColumnWidth());
         // Ajustement à une page en largeur
         worksheet.setFitToPage(true);
         worksheet.getPrintSetup().setFitWidth((short) 1);
