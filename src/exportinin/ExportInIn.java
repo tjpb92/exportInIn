@@ -28,7 +28,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * Exporter dans un fichier Excel la configuration d’InIn
  *
  * @author Thierry Baribaud
- * @version 0.06
+ * @version 0.07
  */
 public class ExportInIn {
 
@@ -53,6 +53,11 @@ public class ExportInIn {
     private Hashtable<String, Workgroup> workgroups;
 
     /**
+     * Liste des entrées Attendant
+     */
+    private Hashtable<String, AttendantEntry> attendantEntries;
+
+    /**
      * Fichier Excel recevant les résultats
      */
     private XSSFWorkbook classeur;
@@ -71,6 +76,11 @@ public class ExportInIn {
      * Feuillet pour les groupes de travail
      */
     private XSSFSheet workgroupsWorksheet;
+
+    /**
+     * Feuillet pour les entrées Attendant
+     */
+    private XSSFSheet attendantEntriesWorksheet;
 
     /**
      * Contructeur principal de la classe
@@ -119,31 +129,41 @@ public class ExportInIn {
         int nbAgents;
         int nbSkills;
         int nbWorkgroups;
+        int nbAttendantEntries;
         String isKey;
         String valueName;
         String value;
         String path;
         StringTokenizer stringTokenizer;
         String name;
+        String previousName;
         Enumeration enumAgents;
         Enumeration enumSkills;
         Enumeration enumWorkgroups;
+        Enumeration enumAttendantEntries;
         String aSkill;
         String[] buffer;
         AgentSkill agentSkill;
+        AttendantEntry attendantEntry;
+        boolean attendantSeen = false;
 
         System.out.println("Traitement du fichier ...");
         agents = new Hashtable<>();
         skills = new Hashtable<>();
         workgroups = new Hashtable<>();
+        attendantEntries = new Hashtable<>();
         nbRecords = 0;
         nbAgents = 0;
         nbSkills = 0;
         nbWorkgroups = 0;
+        nbAttendantEntries = 0;
         agent = new Agent();
         skill = new Skill();
         workgroup = new Workgroup();
         agentSkill = new AgentSkill();
+        attendantEntry = new AttendantEntry();
+        name = "undefined";
+        previousName = "undefined";
         while ((line = bufferedReader.readLine()) != null) {
             nbRecords++;
             if ((nbRecords % 10000) == 0) {
@@ -158,12 +178,14 @@ public class ExportInIn {
                 valueName = inInRecord.getValueName();
                 value = inInRecord.getValue();
                 isKey = inInRecord.getIsKey();
-                name = "undefined";
+//                name = "undefined";
+//                previousName = "undefined";
 
                 //            System.out.println("isKey:" + isKey + ", isKey=1:" + isKey.equals("1"));
                 if (isKey.equals("1")) {
                     stringTokenizer = new StringTokenizer(path, "\\");
                     while (stringTokenizer.hasMoreTokens()) {
+                        previousName = name;
                         name = stringTokenizer.nextToken();
                     }
 //                    System.out.println(line+", name="+name);
@@ -217,7 +239,7 @@ public class ExportInIn {
                     if ("1".equals(isKey)) {
                         nbSkills++;
                         skill = new Skill(name);
-//                        System.out.println(skill + ", name=" + name);
+//                        System.out.println(attendantEntry + ", name=" + name);
                         skills.put(name, skill);
                     }
                 } else if ("Workgroup".equals(objectClass)) {
@@ -231,6 +253,28 @@ public class ExportInIn {
                             workgroups.put(name, workgroup);
                         }
                     }
+                } else if ("Attendant".equals(objectClass)) {
+//                    System.out.println("  name=" + name + ", " + inInRecord);
+                    if ("1".equals(isKey)) {
+                        attendantSeen = "Attendant".equals(name);
+                    }
+                    if ("ProfilePaths".equals(valueName) && attendantSeen) {
+                        nbAttendantEntries++;
+                        attendantEntry = new AttendantEntry(value);
+                        System.out.println(attendantEntry + ", name=" + value);
+                        attendantEntries.put(attendantEntry.getId(), attendantEntry);
+                    }
+                } else if ("Profile".equals(objectClass) && "Attendant".equals(previousName)) {
+//                    System.out.println("  name=" + name + ", previousName=" + previousName + ", " + inInRecord);
+                    if ("1".equals(isKey)) {
+                        attendantEntry = attendantEntries.get(name);
+//                        System.out.println("    attendantEntry=" + attendantEntry);
+                    }                    
+                    if ("DNISString".equals(valueName)){
+                        attendantEntry.setSdaList(value);
+//                        System.out.println("    sdaList=" + attendantEntry.getSdaList());
+                        attendantEntries.replace(attendantEntry.getId(), attendantEntry);
+                    }
                 }
             } catch (BadlyFormedInInRecordException | NumberFormatException exception) {
                 System.out.println("ERREUR : enregistrement mal formatté");
@@ -242,14 +286,19 @@ public class ExportInIn {
 //            System.out.println(enumAgents.nextElement());
 //        }
         System.out.println(nbSkills + " compétence(s) trouvé(s)");
-//        enumSkills = skills.elements();
-//        while (enumSkills.hasMoreElements()) {
-//            System.out.println(enumSkills.nextElement());
+//        enumAttendantEntries = skills.elements();
+//        while (enumAttendantEntries.hasMoreElements()) {
+//            System.out.println(enumAttendantEntries.nextElement());
 //        }
         System.out.println(nbWorkgroups + " workgroup(s) trouvé(s)");
 //        enumWorkgroups = workgroups.elements();
 //        while (enumWorkgroups.hasMoreElements()) {
 //            System.out.println(enumWorkgroups.nextElement());
+//        }
+        System.out.println(nbAttendantEntries + " entrée(s) Attendant trouvée(s)");
+//        enumAttendantEntries = attendantEntries.elements();
+//        while (enumAttendantEntries.hasMoreElements()) {
+//            System.out.println(enumAttendantEntries.nextElement());
 //        }
 
         System.out.println(nbRecords + " enregistrements traités.");
@@ -264,6 +313,7 @@ public class ExportInIn {
         agentsWorksheet = classeur.createSheet("Utilisateurs");
         skillsWorksheet = classeur.createSheet("Compétences");
         workgroupsWorksheet = classeur.createSheet("Groupes");
+        attendantEntriesWorksheet = classeur.createSheet("Entrées_Attendant");
     }
 
     /**
@@ -285,6 +335,7 @@ public class ExportInIn {
         addAgentsToExcel(titleStyle, titleStyle2);
         addSkillsToExcel(titleStyle);
         addWorkgroupsToExcel(titleStyle);
+        addAttendantEntriesToExcel(titleStyle);
     }
 
     /**
@@ -425,7 +476,7 @@ public class ExportInIn {
 //                    cell.setCellValue("X");
                     aString = new StringBuffer();
                     aString.append(agentSkill.getLevel());
-//                    System.out.println("skill:"+agentSkill.getLevel());
+//                    System.out.println("attendantEntry:"+agentSkill.getLevel());
                     if (agentSkill.getDesireToUse() > 0) {
                         aString.append("/").append(agentSkill.getDesireToUse());
                     }
@@ -542,6 +593,55 @@ public class ExportInIn {
     }
 
     /**
+     * Méthode pour ajouter les entrées Attendant dans le fichier Excel
+     */
+    private void addAttendantEntriesToExcel(XSSFCellStyle titleStyle) {
+        Enumeration enumAttendantEntries;
+        XSSFRow titre;
+        XSSFCell cell;
+        XSSFRow ligne;
+        int i;
+        AttendantEntry attendantEntry;
+        String sdaList;
+
+        // Ligne de titre
+        titre = attendantEntriesWorksheet.createRow(0);
+        cell = titre.createCell((short) 0);
+        cell.setCellStyle(titleStyle);
+        cell.setCellValue("Nom");
+        cell = titre.createCell((short) 1);
+        cell.setCellStyle(titleStyle);
+        cell.setCellValue("Id");
+        cell = titre.createCell((short) 2);
+        cell.setCellStyle(titleStyle);
+        cell.setCellValue("SDAs");
+
+        enumAttendantEntries = attendantEntries.elements();
+        i = 0;
+        while (enumAttendantEntries.hasMoreElements()) {
+            i++;
+            attendantEntry = (AttendantEntry) enumAttendantEntries.nextElement();
+
+            ligne = attendantEntriesWorksheet.createRow(i);
+
+            cell = ligne.createCell(0);
+            cell.setCellValue(attendantEntry.getName());
+//            cell.setCellStyle(cellStyle);
+            cell = ligne.createCell(1);
+            cell.setCellValue(attendantEntry.getId());
+            
+            cell = ligne.createCell(2);
+            if ((sdaList=attendantEntry.getSdaList())!=null) {
+                cell.setCellValue(sdaList);
+            }
+
+            System.out.println(attendantEntry);
+        }
+
+        finalizeWorksheet(attendantEntriesWorksheet, 3, "Liste des entrées Attendant", false);
+    }
+
+    /**
      * Méthode pour fermer le fichier Excel
      */
     private void closeOutputFile(String filename) {
@@ -621,6 +721,7 @@ public class ExportInIn {
         Agent agent;
         InInRecord record;
         ExportInIn exportInIn;
+        AttendantEntry attendantEntry;
 
         skill = new Skill("Antargaz");
         System.out.println(skill);
@@ -632,6 +733,9 @@ public class ExportInIn {
         agent.setExtension("7504");
         agent.setName("Thierry Baribaud");
         System.out.println(agent);
+
+        attendantEntry = new AttendantEntry("Default profile");
+        System.out.println(attendantEntry);
 
 //        try {
 //            record = new InInRecord("\"Champ1\",\"Champ2\",\"Champ3\",\"Champ4\",\"Champ5\",\"Champ6\"");
